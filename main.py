@@ -51,7 +51,14 @@ def handle_date(message):
     bot.send_message(message.chat.id, "💰 Enter sheep price (e.g. 1200):")
 
 
-@bot.message_handler(func=lambda message: user_states.get(message.chat.id) == 'awaiting_price')
+@bot.message_handler(func=lambda message: user_states.get(message.chat.id) == "awaiting_price")
+def handle_weight(message):
+    user_inputs[message.chat.id]["weight"] = message.text
+    user_states[message.chat.id] = "awaiting_weight"
+    bot.send_message(message.chat.id, "Enter the weight of sheep:")
+
+
+@bot.message_handler(func=lambda message: user_states.get(message.chat.id) == 'awaiting_weight')
 def handle_price(message):
     user_inputs[message.chat.id]['price'] = message.text
     user_states[message.chat.id] = 'awaiting_source'
@@ -80,7 +87,7 @@ def view_sheep(message):
         return
     text = "📋 Latest Sheep Entries:\n\n"
     for i, entry in enumerate(data[-5:], 1):
-        text += f"{i}. 🗓 {entry['date']} | 💰 {entry['price']} | 📍 {entry['source']}\n"
+        text += f"{i}. 🗓 {entry['date']} | 💰 {entry['price']} | {entry["weight"]} | 📍 {entry['source']}\n"
     bot.send_message(message.chat.id, text)
 
 
@@ -92,7 +99,7 @@ def delete_last(message):
         return
     removed = data.pop()
     save_data(data)
-    bot.send_message(message.chat.id, f"❌ Deleted last sheep: {removed['date']} | {removed['price']} TJS")
+    bot.send_message(message.chat.id, f"❌ Deleted last sheep: {removed['date']} | {removed['price']} TJS | {removed['weight']}")
 
 
 @bot.message_handler(func=lambda m: m.text == '📊 Summary')
