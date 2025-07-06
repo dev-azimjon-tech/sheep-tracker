@@ -19,7 +19,7 @@ def load_data():
 
 def save_data(data):
     with open(DATA_FILE, 'w') as f:
-        json.dump(data, f, indent=4)
+        json.dump(data, f, indent=5)
 
 
 user_states = {}
@@ -52,6 +52,13 @@ def handle_date(message):
 @bot.message_handler(func=lambda message: user_states.get(message.chat.id) == 'awaiting_price')
 def handle_price(message):
     user_inputs[message.chat.id]['price'] = message.text
+    user_states[message.chat.id] = 'awaiting_weight'
+    bot.send_message(message.chat.id, "⚖️ Qo'y vaznini kiriting (kg):")
+
+
+@bot.message_handler(func=lambda message: user_states.get(message.chat.id) == 'awaiting_weight')
+def handle_weight(message):
+    user_inputs[message.chat.id]['weight'] = message.text
     user_states[message.chat.id] = 'awaiting_source'
     bot.send_message(message.chat.id, "📍 Sotuvchi yoki bozor nomini kiriting:")
 
@@ -78,9 +85,8 @@ def view_sheep(message):
         return
     text = "📋 So‘nggi qo‘y yozuvlari:\n\n"
     for i, entry in enumerate(data[-5:], 1):
-        text += f"{i}. 🗓 {entry['date']} | 💰 {entry['price']} TJS | 📍 {entry['source']}\n"
+        text += f"{i}. 🗓 {entry['date']} | 💰 {entry['price']} TJS | ⚖️ {entry['weight']} kg | 📍 {entry['source']}\n"
     bot.send_message(message.chat.id, text)
-
 
 
 @bot.message_handler(func=lambda m: m.text == '🗑 Oxirgini o‘chirish')
@@ -93,20 +99,30 @@ def delete_last(message):
     save_data(data)
     bot.send_message(
         message.chat.id,
-        f"🗑 Oxirgi qo‘y yozuvi o‘chirildi:\n🗓 {removed['date']} | 💰 {removed['price']} TJS"
+        f"🗑 Oxirgi qo‘y yozuvi o‘chirildi:\n🗓 {removed['date']} | 💰 {removed['price']} TJS | ⚖️ {removed['weight']} kg"
     )
+
 
 @bot.message_handler(func=lambda m: m.text == '📊 Statistika')
 def summary(message):
     data = load_data()
     total = len(data)
-    total_price = sum(float(item['price']) for item in data)
+
+    # Only include records with both price and weight
+    valid_data = [item for item in data if 'price' in item and 'weight' in item]
+
+    total_price = sum(float(item['price']) for item in valid_data)
+    total_weight = sum(float(item['weight']) for item in valid_data)
+
     avg_price = total_price / total if total else 0
+    avg_weight = total_weight / total if total else 0
+
     bot.send_message(
         message.chat.id,
         f"📊 Statistika:\n"
         f"🐑 Jami qo‘ylar: {total}\n"
         f"💸 Jami sarflangan: {total_price:.2f} TJS\n"
+        f"⚖️ O'rtacha vazn: {avg_weight:.2f} kg\n"
         f"📈 O‘rtacha narx: {avg_price:.2f} TJS"
     )
 
