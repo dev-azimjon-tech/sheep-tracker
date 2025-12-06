@@ -3,9 +3,17 @@ from telebot import types
 import datetime
 import json
 import re
+from dotenv import load_dotenv
+import os
+from flask import Flask,request
 
-API_TOKEN = '7711704091:AAGxNLAn563uLGWymFvK9rkiwWQn2391p4o'
+load_dotenv()
+
+API_TOKEN = os.getenv('TELEGRAM_TOKEN')
+if not API_TOKEN:
+    raise ValueError("API_TOKEN not found in environment variables. Please set TELEGRAM_TOKEN in .env file.")
 bot = telebot.TeleBot(API_TOKEN)
+
 
 DATA_FILE = 'sheep_data.json'
 
@@ -246,11 +254,30 @@ def summary(message):
 def fallback(message):
     bot.send_message(message.chat.id, "❗ Noma'lum buyruq. Iltimos, menyudan foydalaning.")
 
-if __name__ == '__main__':
-    try:
-        print("before call to IP")
-        bot.delete_webhook()
-        bot.infinity_polling()
-        print("after call to IP")
-    except (KeyboardInterrupt, SystemExit):
-        pass
+WEBHOOK_PATH = f"/webhook/{API_TOKEN}"
+WEBHOOK_URL = f"https://sheep-tracker-g1gp.onrender.com{WEBHOOK_PATH}"
+
+
+@app.route("/", methods=["GET"])
+def index():
+    return "Bot is running on Render 🚀", 200
+
+@app.route(WEBHOOK_PATH, methods=["POST"])
+def webhook():
+    if request.headers.get("content-type") == "application/json":
+        json_string = request.get_data().decode("utf-8")
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return "ok", 200
+    else:
+        return "bad request", 403
+
+if __name__ == "__main__":
+    print("Bot is running...")
+    bot.remove_webhook()
+    print("Webhook removed!")
+    reminder_thread = threading.Thread(target=reminder_checker, daemon=True)
+    reminder_thread.start()
+    bot.set_webhook(url=WEBHOOK_URL)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
