@@ -5,7 +5,10 @@ import json
 import re
 from dotenv import load_dotenv
 import os
-from flask import Flask,request
+from flask import Flask, request
+import threading
+
+app = Flask(__name__)
 
 load_dotenv()
 
@@ -276,8 +279,6 @@ if __name__ == "__main__":
     print("Bot is running...")
     bot.remove_webhook()
     print("Webhook removed!")
-    reminder_thread = threading.Thread(target=reminder_checker, daemon=True)
-    reminder_thread.start()
     bot.set_webhook(url=WEBHOOK_URL)
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
